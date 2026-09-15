@@ -4,8 +4,11 @@ from app.config import settings
 
 class LLMClient:
     """
-    Unified LLM client abstraction layer.
-    Supports Ollama locally by default, or Groq API if configured via env var.
+    Unified LLM client supporting local Ollama (Llama 3, Qwen 2.5) and Cloud Groq API endpoints.
+    Allows specifying models in 'provider:model_name' format:
+      - 'ollama:llama3.1:8b'
+      - 'qwen:qwen2.5:7b' (via Ollama local engine)
+      - 'groq:llama-3.1-70b-versatile' / 'groq:llama3-8b-8192'
     """
     def __init__(self, provider: str = None, host: str = None, default_model: str = None):
         self.provider = provider or settings.LLM_PROVIDER
@@ -22,10 +25,22 @@ class LLMClient:
     ) -> str:
         selected_model = model or self.default_model
 
-        if self.provider.lower() == "groq" and self.groq_api_key:
-            return await self._call_groq(messages, selected_model, system_prompt, temperature)
+        # Parse provider prefix if provided (e.g. 'groq:llama3-8b-8192' or 'qwen:qwen2.5:7b')
+        target_provider = self.provider.lower()
+        model_name = selected_model
+
+        if ":" in selected_model and not selected_model.startswith("http"):
+            parts = selected_model.split(":", 1)
+            prefix = parts[0].lower()
+            if prefix in ["groq", "ollama", "qwen"]:
+                target_provider = prefix
+                model_name = parts[1]
+
+        if target_provider == "groq" and self.groq_api_key:
+            return await self._call_groq(messages, model_name, system_prompt, temperature)
         else:
-            return await self._call_ollama(messages, selected_model, system_prompt, temperature)
+            # Both 'ollama' and 'qwen' run locally via Ollama host endpoint
+            return await self._call_ollama(messages, model_name, system_prompt, temperature)
 
     async def _call_ollama(
         self,
@@ -57,8 +72,7 @@ class LLMClient:
                 else:
                     return f"[Ollama Error: Status {response.status_code} - {response.text}]"
             except Exception as e:
-                # Return fallback response if Ollama service is unreachable during scaffolding/testing
-                return f"[LLM Simulation Fallback: Target processed prompt. Error communicating with Ollama host at {self.host}: {str(e)}]"
+                return f"[LLM Simulation Fallback ({model}): Target processed adversarial prompt. Error connecting to Ollama at {self.host}: {str(e)}]"
 
     async def _call_groq(
         self,
@@ -76,8 +90,16 @@ class LLMClient:
             "Authorization": f"Bearer {self.groq_api_key}",
             "Content-Type": "application/json"
         }
+        
+        # Default Groq model mapping if short name passed
+        groq_model = model
+        if groq_model in ["llama3-8b", "llama3.1-8b"]:
+            groq_model = "llama3-8b-8192"
+        elif groq_model in ["llama3-70b", "llama3.1-70b"]:
+            groq_model = "llama-3.1-70b-versatile"
+
         payload = {
-            "model": model or "llama3-8b-8192",
+            "model": groq_model,
             "messages": formatted_messages,
             "temperature": temperature
         }

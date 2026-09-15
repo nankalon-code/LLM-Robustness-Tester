@@ -24,6 +24,7 @@ class TestCase(Base):
     is_multi_turn = Column(Integer, default=0) # 0 for single turn, 1 for multi turn
     prompt_or_turns = Column(JSON, nullable=False) # string for single-turn, list of strings for multi-turn
     description = Column(String, nullable=True)
+    strategy = Column(String, default="seed_benchmark") # zero_shot_lm, few_shot_lm, prompt_mutation, rl_guided, seed_benchmark
 
     results = relationship("TestResult", back_populates="test_case")
 
@@ -36,6 +37,10 @@ class TestRun(Base):
     target_info = Column(JSON, nullable=True) # snapshot of target details
     status = Column(String, default="pending") # pending, running, completed, failed
     overall_score = Column(Float, nullable=True) # severity-weighted robustness score (0-100)
+    selected_strategy = Column(String, default="all_perez_strategies")
+    red_team_generator_model = Column(String, default="ollama:llama3.1:8b")
+    evaluator_judge_model = Column(String, default="ollama:llama3.1:8b")
+    strategy_breakdown = Column(JSON, nullable=True) # aggregated scores by strategy
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     target = relationship("Target", back_populates="test_runs")
@@ -52,6 +57,8 @@ class TestResult(Base):
     label = Column(String, nullable=True) # robust, vulnerable, ambiguous
     severity = Column(String, nullable=True) # none, low, medium, high, critical
     explanation = Column(Text, nullable=True)
+    strategy = Column(String, nullable=True, default="seed_benchmark")
+    is_offensive_content = Column(Integer, default=0) # 1 if contains raw adversarial/offensive output
     broke_at_turn = Column(Integer, nullable=True) # Nullable int for multi-turn break tracking
 
     test_run = relationship("TestRun", back_populates="results")

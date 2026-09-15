@@ -37,25 +37,28 @@ export default function RegressionView() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="border border-slate-800 rounded-2xl bg-slate-900/60 p-6 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-cyber-amber/10 rounded-xl border border-cyber-amber/30 text-cyber-amber">
+    <div className="space-y-6 font-mono">
+      <div className="border-2 border-stone-900 rounded-xl bg-[#FAF6EE] p-6 md:p-8 relative overflow-hidden shadow-[6px_6px_0px_#1C1917]">
+        <div className="flex items-center gap-3 mb-6 border-b-2 border-stone-900 pb-4">
+          <div className="p-3 bg-[#FFD000] border-2 border-stone-900 text-stone-900 rounded font-bold">
             <GitCompare className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-100">Regression & Diff Analysis</h2>
-            <p className="text-sm text-slate-400">Compare baseline security evaluation against candidate runs to detect regressions.</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-stone-900 uppercase tracking-wider">REGRESSION & SECURITY DIFF MATRIX</h2>
+              <span className="stamp-classified text-[9px]">COMPARATIVE TELEMETRY</span>
+            </div>
+            <p className="text-xs text-stone-700 font-bold">Perez et al. Baseline vs Candidate Model Security Drift Tracking</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Baseline Run (Run A)</label>
+            <label className="block text-xs font-black uppercase tracking-wider text-stone-900 mb-2">BASELINE RUN (RUN A)</label>
             <select
               value={runAId}
               onChange={(e) => setRunAId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyber-cyan"
+              className="w-full bg-white border-2 border-stone-900 rounded-lg px-4 py-3 text-stone-900 text-xs font-bold focus:outline-none shadow-[2px_2px_0px_#1C1917]"
             >
               <option value="">Select Baseline Run</option>
               {runs.map((r) => (
@@ -67,11 +70,11 @@ export default function RegressionView() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Candidate Run (Run B)</label>
+            <label className="block text-xs font-black uppercase tracking-wider text-stone-900 mb-2">CANDIDATE RUN (RUN B)</label>
             <select
               value={runBId}
               onChange={(e) => setRunBId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-cyber-cyan"
+              className="w-full bg-white border-2 border-stone-900 rounded-lg px-4 py-3 text-stone-900 text-xs font-bold focus:outline-none shadow-[2px_2px_0px_#1C1917]"
             >
               <option value="">Select Candidate Run</option>
               {runs.map((r) => (
@@ -85,9 +88,9 @@ export default function RegressionView() {
           <button
             onClick={handleCompare}
             disabled={!runAId || !runBId || loading}
-            className="w-full bg-cyber-cyan text-slate-950 font-bold py-3 px-6 rounded-xl hover:bg-cyber-cyan/90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full bg-[#F95738] text-white border-2 border-stone-900 font-black py-3.5 px-6 rounded-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs uppercase tracking-wider shadow-[4px_4px_0px_#1C1917]"
           >
-            <span>{loading ? 'Computing Diff...' : 'Compute Regression Diff'}</span>
+            <span>{loading ? 'COMPUTING DIFF...' : 'COMPUTE REGRESSION DIFF'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -96,39 +99,42 @@ export default function RegressionView() {
       {diff && (
         <div className="space-y-6">
           {/* Summary Delta Card */}
-          <div className="p-6 border border-slate-800 rounded-2xl bg-slate-900/50 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Score Delta</span>
-              <div className={`text-3xl font-extrabold mt-1 ${diff.score_change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className="p-6 border-2 border-stone-900 rounded-xl bg-[#FAF6EE] grid grid-cols-1 md:grid-cols-3 gap-6 shadow-[6px_6px_0px_#1C1917]">
+            <div className="bg-white p-4 border-2 border-stone-900 rounded-lg shadow-[2px_2px_0px_#1C1917]">
+              <span className="text-xs font-black uppercase tracking-wider text-stone-900">SCORE DELTA</span>
+              <div className={`text-3xl font-black mt-1 ${diff.score_change >= 0 ? 'text-emerald-800' : 'text-[#F95738]'}`}>
                 {diff.score_change >= 0 ? `+${diff.score_change}` : diff.score_change} pts
               </div>
             </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-red-400">New Regressions</span>
-              <div className="text-3xl font-extrabold text-red-400 mt-1">{diff.new_vulnerabilities.length}</div>
+            <div className="bg-white p-4 border-2 border-stone-900 rounded-lg shadow-[2px_2px_0px_#1C1917]">
+              <span className="text-xs font-black uppercase tracking-wider text-[#F95738]">NEW REGRESSIONS</span>
+              <div className="text-3xl font-black text-[#F95738] mt-1">{diff.new_vulnerabilities.length}</div>
             </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Remediated / Fixed</span>
-              <div className="text-3xl font-extrabold text-emerald-400 mt-1">{diff.fixed_vulnerabilities.length}</div>
+            <div className="bg-white p-4 border-2 border-stone-900 rounded-lg shadow-[2px_2px_0px_#1C1917]">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-800">REMEDIATED / FIXED</span>
+              <div className="text-3xl font-black text-emerald-800 mt-1">{diff.fixed_vulnerabilities.length}</div>
             </div>
           </div>
 
           {/* New Vulnerabilities (Regressions) */}
           {diff.new_vulnerabilities.length > 0 && (
-            <div className="border border-red-500/30 rounded-2xl bg-red-500/5 p-6">
-              <h3 className="text-base font-bold text-red-400 flex items-center gap-2 mb-4">
+            <div className="border-2 border-stone-900 rounded-xl bg-red-100 p-6 shadow-[6px_6px_0px_#1C1917]">
+              <h3 className="text-sm font-black text-[#F95738] flex items-center gap-2 mb-4 uppercase tracking-wider">
                 <ShieldAlert className="w-5 h-5" />
-                <span>New Security Regressions Introduced</span>
+                <span>NEW SECURITY REGRESSIONS INTRODUCED</span>
               </h3>
               <div className="space-y-3">
                 {diff.new_vulnerabilities.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-sm">
+                  <div key={idx} className="p-4 bg-white border-2 border-stone-900 rounded-lg flex items-center justify-between text-xs font-bold shadow-[2px_2px_0px_#1C1917]">
                     <div>
-                      <span className="font-mono font-bold text-slate-200">{item.test_case_id}</span>
-                      <span className="ml-3 text-xs text-slate-400 font-mono">[{item.category}]</span>
+                      <span className="font-black text-stone-950">{item.test_case_id}</span>
+                      <span className="ml-3 text-stone-700">[{item.category}]</span>
+                      <span className="ml-2 text-[10px] bg-[#FFD000] text-stone-950 border border-stone-900 px-1.5 py-0.5 rounded font-black">
+                        {item.strategy || 'seed_benchmark'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-xs text-slate-400">Severity:</span>
+                      <span className="text-stone-700">Severity:</span>
                       <SeverityBadge severity={item.run_b_severity} />
                     </div>
                   </div>
@@ -139,19 +145,19 @@ export default function RegressionView() {
 
           {/* Fixed Vulnerabilities */}
           {diff.fixed_vulnerabilities.length > 0 && (
-            <div className="border border-emerald-500/30 rounded-2xl bg-emerald-500/5 p-6">
-              <h3 className="text-base font-bold text-emerald-400 flex items-center gap-2 mb-4">
-                <ShieldCheck className="w-5 h-5" />
-                <span>Remediated Vulnerabilities</span>
+            <div className="border-2 border-stone-900 rounded-xl bg-emerald-100 p-6 shadow-[6px_6px_0px_#1C1917]">
+              <h3 className="text-sm font-black text-emerald-900 flex items-center gap-2 mb-4 uppercase tracking-wider">
+                <ShieldCheck className="w-5 h-5 text-emerald-800" />
+                <span>REMEDIATED VULNERABILITIES</span>
               </h3>
               <div className="space-y-3">
                 {diff.fixed_vulnerabilities.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-sm">
+                  <div key={idx} className="p-4 bg-white border-2 border-stone-900 rounded-lg flex items-center justify-between text-xs font-bold shadow-[2px_2px_0px_#1C1917]">
                     <div>
-                      <span className="font-mono font-bold text-slate-200">{item.test_case_id}</span>
-                      <span className="ml-3 text-xs text-slate-400 font-mono">[{item.category}]</span>
+                      <span className="font-black text-stone-950">{item.test_case_id}</span>
+                      <span className="ml-3 text-stone-700">[{item.category}]</span>
                     </div>
-                    <span className="text-xs font-semibold text-emerald-400 uppercase">Fixed</span>
+                    <span className="font-black text-emerald-800 uppercase">REMEDIATED</span>
                   </div>
                 ))}
               </div>

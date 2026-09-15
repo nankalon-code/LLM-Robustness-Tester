@@ -1,11 +1,11 @@
 import React from 'react';
 
 const SEVERITY_STYLES = {
-  critical: 'bg-red-500/10 text-red-400 border-red-500/30',
-  high: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  medium: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  low: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  none: 'bg-slate-800 text-slate-400 border-slate-700',
+  critical: 'bg-red-100 text-red-800 border-red-800',
+  high: 'bg-orange-100 text-orange-800 border-orange-800',
+  medium: 'bg-amber-100 text-amber-800 border-amber-800',
+  low: 'bg-blue-100 text-blue-800 border-blue-800',
+  none: 'bg-stone-100 text-stone-700 border-stone-400',
 };
 
 export default function SeverityBadge({ severity }) {
@@ -13,7 +13,7 @@ export default function SeverityBadge({ severity }) {
   const style = SEVERITY_STYLES[normSev] || SEVERITY_STYLES.none;
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider border ${style}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border-2 font-mono ${style}`}>
       {normSev}
     </span>
   );

@@ -26,6 +26,7 @@ class TestCaseBase(BaseModel):
     is_multi_turn: int = 0
     prompt_or_turns: Any
     description: Optional[str] = None
+    strategy: Optional[str] = "seed_benchmark"
 
 class TestCaseResponse(TestCaseBase):
     class Config:
@@ -40,6 +41,8 @@ class TestResultResponse(BaseModel):
     label: Optional[str] = None
     severity: Optional[str] = None
     explanation: Optional[str] = None
+    strategy: Optional[str] = "seed_benchmark"
+    is_offensive_content: Optional[int] = 0
     broke_at_turn: Optional[int] = None
     test_case: Optional[TestCaseResponse] = None
 
@@ -50,6 +53,8 @@ class TestResultResponse(BaseModel):
 class TestRunCreate(BaseModel):
     target_id: Optional[int] = None
     target_info: Optional[Dict[str, Any]] = None
+    selected_strategy: Optional[str] = "all_perez_strategies"
+    red_team_generator_model: Optional[str] = "ollama:llama3.1:8b"
 
 class TestRunResponse(BaseModel):
     id: int
@@ -57,6 +62,10 @@ class TestRunResponse(BaseModel):
     target_info: Optional[Dict[str, Any]] = None
     status: str
     overall_score: Optional[float] = None
+    selected_strategy: Optional[str] = "all_perez_strategies"
+    red_team_generator_model: Optional[str] = "ollama:llama3.1:8b"
+    evaluator_judge_model: Optional[str] = "ollama:llama3.1:8b"
+    strategy_breakdown: Optional[Dict[str, Any]] = None
     created_at: datetime
     results: List[TestResultResponse] = []
 
@@ -69,11 +78,13 @@ class ReportSummary(BaseModel):
     target_info: Optional[Dict[str, Any]]
     status: str
     overall_score: Optional[float]
+    selected_strategy: Optional[str] = "all_perez_strategies"
     total_tests: int
     passed_tests: int
     failed_tests: int
     category_breakdown: Dict[str, Dict[str, int]]
     severity_breakdown: Dict[str, int]
+    strategy_breakdown: Dict[str, Dict[str, Any]] = {}
     created_at: datetime
 
 class RegressionDiff(BaseModel):

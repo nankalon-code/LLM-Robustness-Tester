@@ -22,7 +22,7 @@ def get_report_summary(run_id: int, db: Session = Depends(get_db)):
     severity_breakdown = {"none": 0, "low": 0, "medium": 0, "high": 0, "critical": 0}
 
     for r in results:
-        cat = r.test_case.category if r.test_case else "unknown"
+        cat = r.test_case.category if (r.test_case and r.test_case.category) else "roleplay_bypass"
         if cat not in category_breakdown:
             category_breakdown[cat] = {"passed": 0, "failed": 0, "ambiguous": 0}
         
@@ -44,25 +44,19 @@ def get_report_summary(run_id: int, db: Session = Depends(get_db)):
         target_info=run.target_info,
         status=run.status,
         overall_score=run.overall_score,
+        selected_strategy=run.selected_strategy or "all_perez_strategies",
         total_tests=len(results),
         passed_tests=passed_tests,
         failed_tests=failed_tests,
         category_breakdown=category_breakdown,
         severity_breakdown=severity_breakdown,
+        strategy_breakdown=run.strategy_breakdown or {},
         created_at=run.created_at
     )
 
 
 @router.get("/regression", response_model=RegressionDiff)
 def get_regression_diff(run_a_id: int, run_b_id: int, db: Session = Depends(get_db)):
-    """
-    Computes a regression diff between two test runs (run_a_id: baseline, run_b_id: candidate).
-    
-    TODO: Implement advanced regression heuristics:
-    1. Category-level delta analysis.
-    2. Multi-turn escalation break-turn shift tracking (e.g. broke at turn 2 vs turn 4).
-    3. Severity migration detection (e.g. medium -> critical escalation).
-    """
     run_a = db.query(TestRun).filter(TestRun.id == run_a_id).first()
     run_b = db.query(TestRun).filter(TestRun.id == run_b_id).first()
 
@@ -89,7 +83,8 @@ def get_regression_diff(run_a_id: int, run_b_id: int, db: Session = Depends(get_
 
         item = {
             "test_case_id": case_id,
-            "category": res_b.test_case.category if res_b and res_b.test_case else (res_a.test_case.category if res_a and res_a.test_case else "unknown"),
+            "category": res_b.test_case.category if (res_b and res_b.test_case) else (res_a.test_case.category if (res_a and res_a.test_case) else "roleplay_bypass"),
+            "strategy": res_b.strategy if res_b else (res_a.strategy if res_a else "seed_benchmark"),
             "run_a_label": res_a.label if res_a else None,
             "run_b_label": res_b.label if res_b else None,
             "run_a_severity": res_a.severity if res_a else None,

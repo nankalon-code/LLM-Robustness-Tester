@@ -4,25 +4,85 @@
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-  }
-  code, pre {
-    font-family: 'JetBrains Mono', monospace;
+    background-color: #EFE6D5;
+    color: #1C1917;
+    font-family: 'Courier New', Courier, 'Space Mono', Consolas, monospace;
   }
 }
 
-/* Custom scrollbars */
+/* Vintage Paper Backdrop */
+.parchment-bg {
+  background-color: #EFE6D5;
+  background-image: radial-gradient(rgba(38, 38, 38, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Redacted Stamp Block */
+.redacted-block {
+  background-color: #1C1917;
+  color: #1C1917;
+  user-select: none;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  border: 1px solid #1C1917;
+}
+
+.redacted-block:hover {
+  background-color: #FFD000;
+  color: #1C1917;
+  border-color: #1C1917;
+}
+
+.redacted-revealed {
+  background-color: #F95738;
+  color: #FFFFFF;
+  font-weight: bold;
+  border: 1.5px solid #1C1917;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Vintage Classified Stamp */
+.stamp-classified {
+  border: 2px solid #F95738;
+  color: #F95738;
+  font-family: 'Courier New', monospace;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  display: inline-block;
+  background-color: #FAF6EE;
+  box-shadow: 2px 2px 0px #1C1917;
+}
+
+.stamp-specimen {
+  border: 2px solid #1C1917;
+  color: #1C1917;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  background-color: #FFD000;
+  box-shadow: 2px 2px 0px #1C1917;
+}
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #EFE6D5;
+  border-left: 2px solid #1C1917;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #F95738;
+  border: 2px solid #1C1917;
+  border-radius: 0px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #FFD000;
 }

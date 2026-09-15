@@ -16,6 +16,16 @@ export async function createTarget(targetData) {
   return res.json();
 }
 
+export async function sendTargetChat(chatData) {
+  const res = await fetch(`${API_BASE}/targets/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(chatData)
+  });
+  if (!res.ok) throw new Error('Failed to communicate with target chatbot');
+  return res.json();
+}
+
 export async function createTestRun(runData) {
   const res = await fetch(`${API_BASE}/test-runs/`, {
     method: 'POST',

@@ -35,6 +35,9 @@ async def create_test_run(
     test_run = TestRun(
         target_id=run_req.target_id,
         target_info=target_info,
+        selected_strategy=run_req.selected_strategy or "all_perez_strategies",
+        red_team_generator_model=run_req.red_team_generator_model or "ollama:llama3.1:8b",
+        evaluator_judge_model="ollama:llama3.1:8b",
         status="pending"
     )
     db.add(test_run)

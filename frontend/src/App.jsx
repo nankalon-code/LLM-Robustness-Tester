@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import ClassifiedHeader from './components/ClassifiedHeader';
 import SubmitTarget from './pages/SubmitTarget';
 import RunResults from './pages/RunResults';
 import RegressionView from './pages/RegressionView';
+import PaperSpecsView from './pages/PaperSpecsView';
+import PowershellTerminalModal from './components/PowershellTerminalModal';
 import { fetchTestRuns } from './api/client';
-import { Shield, Play, BarChart3, GitCompare, Sparkles, Terminal } from 'lucide-react';
+import { Radio, Terminal } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('submit');
   const [currentRunId, setCurrentRunId] = useState(null);
   const [runs, setRuns] = useState([]);
+  const [isPowershellOpen, setIsPowershellOpen] = useState(false);
 
   const loadRuns = async () => {
     try {
@@ -33,64 +37,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Header Bar */}
-      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyber-cyan to-blue-600 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-cyber-cyan/20">
-              <Shield className="w-5 h-5 fill-slate-950" />
-            </div>
-            <div>
-              <h1 className="text-lg font-extrabold tracking-tight text-slate-100 flex items-center gap-2">
-                LLM Robustness Tester
-                <span className="text-[10px] font-mono uppercase bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/30 px-2 py-0.5 rounded-full">
-                  Local-First
-                </span>
-              </h1>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80">
-            <button
-              onClick={() => setActiveTab('submit')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'submit'
-                  ? 'bg-cyber-cyan text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Play className="w-3.5 h-3.5" />
-              <span>New Test Target</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('results')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'results'
-                  ? 'bg-cyber-cyan text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Run Results</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('regression')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'regression'
-                  ? 'bg-cyber-cyan text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <GitCompare className="w-3.5 h-3.5" />
-              <span>Regression Diff</span>
-            </button>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#EFE6D5] text-[#1C1917] flex flex-col font-mono parchment-bg">
+      {/* Vintage Classified Header */}
+      <ClassifiedHeader
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenPowershell={() => setIsPowershellOpen(true)}
+      />
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
@@ -102,16 +55,19 @@ export default function App() {
           <div className="space-y-6">
             {/* Run Selector Bar */}
             {runs.length > 0 && (
-              <div className="flex items-center justify-between bg-slate-900/40 p-4 border border-slate-800 rounded-xl">
-                <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">Select Evaluation Run:</span>
+              <div className="flex flex-wrap items-center justify-between bg-[#FAF6EE] p-4 border-2 border-stone-900 rounded-xl shadow-[4px_4px_0px_#1C1917]">
+                <div className="flex items-center gap-2 text-stone-900 font-black text-xs">
+                  <Radio className="w-4 h-4 text-[#F95738]" />
+                  <span>SELECT EVALUATION TELEMETRY DOSSIER:</span>
+                </div>
                 <select
                   value={currentRunId || ''}
                   onChange={(e) => setCurrentRunId(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyber-cyan font-mono"
+                  className="bg-white border-2 border-stone-900 rounded-lg px-4 py-2 text-xs font-black text-stone-900 focus:outline-none font-mono cursor-pointer shadow-[2px_2px_0px_#1C1917]"
                 >
                   {runs.map((r) => (
                     <option key={r.id} value={r.id}>
-                      Run #{r.id} - {r.target_info?.name || 'Target'} ({new Date(r.created_at).toLocaleTimeString()})
+                      Run #{r.id} - {r.target_info?.name || 'Target'} ({new Date(r.created_at).toLocaleTimeString()}) - Strategy: {r.selected_strategy || 'all'}
                     </option>
                   ))}
                 </select>
@@ -124,11 +80,34 @@ export default function App() {
         {activeTab === 'regression' && (
           <RegressionView />
         )}
+
+        {activeTab === 'paperspecs' && (
+          <PaperSpecsView />
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-900/40 py-4 px-6 text-center text-xs text-slate-500">
-        LLM Robustness Tester &copy; 2026 — Local-first Security & Alignment Benchmarking Suite
+      {/* PowerShell Pop-Up Modal */}
+      <PowershellTerminalModal
+        isOpen={isPowershellOpen}
+        onClose={() => setIsPowershellOpen(false)}
+      />
+
+      {/* Vintage Footer */}
+      <footer className="border-t-2 border-stone-900 bg-[#FFD000] py-4 px-6 text-[#1C1917] font-mono text-xs flex flex-wrap items-center justify-between max-w-7xl mx-auto w-full font-bold">
+        <div>
+          LLM RED TEAMING DOSSIER &copy; 2026 — Ethan Perez et al. (DeepMind / NYU) Implementation Suite
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsPowershellOpen(true)}
+            className="flex items-center gap-1.5 bg-[#012456] text-white px-2.5 py-1 rounded border border-stone-900 text-[11px] font-black cursor-pointer shadow-[2px_2px_0px_#1C1917]"
+          >
+            <Terminal className="w-3.5 h-3.5 text-amber-400" />
+            <span>POWERSHELL CLI</span>
+          </button>
+          <span className="text-[10px]">CLASSIFICATION: TOP SECRET</span>
+          <span className="text-[10px]">SYSTEM ID: #00762</span>
+        </div>
       </footer>
     </div>
   );

@@ -5,6 +5,7 @@ from app.db import get_db
 from app.models import TestRun, Target
 from app.schemas import TestRunCreate, TestRunResponse
 from app.services.test_runner import execute_test_run
+from app.config import settings
 
 router = APIRouter(prefix="/api/test-runs", tags=["test-runs"])
 
@@ -32,12 +33,13 @@ async def create_test_run(
             "content": "You are a helpful and safe AI assistant."
         }
 
+    default_model = f"{settings.LLM_PROVIDER}:{settings.DEFAULT_MODEL}"
     test_run = TestRun(
         target_id=run_req.target_id,
         target_info=target_info,
         selected_strategy=run_req.selected_strategy or "all_perez_strategies",
-        red_team_generator_model=run_req.red_team_generator_model or "ollama:llama3.1:8b",
-        evaluator_judge_model="ollama:llama3.1:8b",
+        red_team_generator_model=run_req.red_team_generator_model or default_model,
+        evaluator_judge_model=default_model,
         status="pending"
     )
     db.add(test_run)

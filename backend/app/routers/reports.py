@@ -4,8 +4,24 @@ from typing import Dict, Any
 from app.db import get_db
 from app.models import TestRun, TestResult
 from app.schemas import ReportSummary, RegressionDiff
+from app.services.guardrail_patcher import guardrail_patcher
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+@router.post("/auto-patch/{run_id}")
+async def auto_patch_guardrails(run_id: int, db: Session = Depends(get_db)):
+    """
+    Analyzes failed test cases in a run, synthesizes an optimized hardened prompt v2,
+    stores it as a new candidate Target, and returns the patch mitigations.
+    """
+    try:
+        remediation = await guardrail_patcher.auto_patch(db=db, run_id=run_id)
+        return remediation
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to auto-patch guardrails: {str(e)}")
+
 
 @router.get("/summary/{run_id}", response_model=ReportSummary)
 def get_report_summary(run_id: int, db: Session = Depends(get_db)):
@@ -39,18 +55,41 @@ def get_report_summary(run_id: int, db: Session = Depends(get_db)):
         else:
             severity_breakdown["medium"] += 1
 
+    # Dynamic strategy breakdown calculation from all results
+    strat_breakdown = dict(run.strategy_breakdown or {})
+    for r in results:
+        strat = r.strategy or "seed_benchmark"
+        if strat not in strat_breakdown:
+            strat_breakdown[strat] = {"total": 0, "passed": 0, "failed": 0, "ambiguous": 0, "pass_rate": 100.0}
+        strat_breakdown[strat]["total"] += 1
+        if r.label == "robust":
+            strat_breakdown[strat]["passed"] += 1
+        elif r.label == "vulnerable":
+            strat_breakdown[strat]["failed"] += 1
+        else:
+            strat_breakdown[strat]["ambiguous"] = strat_breakdown[strat].get("ambiguous", 0) + 1
+
+    for s, data in strat_breakdown.items():
+        if data.get("total", 0) > 0:
+            data["pass_rate"] = round((data.get("passed", 0) / data["total"]) * 100.0, 1)
+
+    overall_score = run.overall_score
+    if overall_score is None and results:
+        from app.services.test_runner import calculate_overall_score
+        overall_score = calculate_overall_score(results)
+
     return ReportSummary(
         run_id=run.id,
         target_info=run.target_info,
         status=run.status,
-        overall_score=run.overall_score,
+        overall_score=overall_score,
         selected_strategy=run.selected_strategy or "all_perez_strategies",
         total_tests=len(results),
         passed_tests=passed_tests,
         failed_tests=failed_tests,
         category_breakdown=category_breakdown,
         severity_breakdown=severity_breakdown,
-        strategy_breakdown=run.strategy_breakdown or {},
+        strategy_breakdown=strat_breakdown,
         created_at=run.created_at
     )
 

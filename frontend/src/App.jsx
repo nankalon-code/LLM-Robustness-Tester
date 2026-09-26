@@ -73,7 +73,7 @@ export default function App() {
                 </select>
               </div>
             )}
-            <RunResults runId={currentRunId} />
+            <RunResults runId={currentRunId} onRunStarted={handleRunStarted} />
           </div>
         )}
 

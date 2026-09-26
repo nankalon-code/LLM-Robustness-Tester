@@ -4,10 +4,11 @@ import ScoreSummaryCard from '../components/ScoreSummaryCard';
 import NeuralScanVisualizer from '../components/NeuralScanVisualizer';
 import StrategyComparisonChart from '../components/StrategyComparisonChart';
 import ResultsTable from '../components/ResultsTable';
+import AutoPatchGuardrailCard from '../components/AutoPatchGuardrailCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Loader2, RefreshCw, Activity, Cpu } from 'lucide-react';
 
-export default function RunResults({ runId }) {
+export default function RunResults({ runId, onRunStarted }) {
   const [run, setRun] = useState(null);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,9 +68,10 @@ export default function RunResults({ runId }) {
 
   const categoryChartData = summary?.category_breakdown
     ? Object.keys(summary.category_breakdown).map((cat) => ({
-        category: cat.replace('_', ' '),
+        category: cat.replaceAll('_', ' '),
         passed: summary.category_breakdown[cat].passed || 0,
         failed: summary.category_breakdown[cat].failed || 0,
+        ambiguous: summary.category_breakdown[cat].ambiguous || 0,
       }))
     : [];
 
@@ -103,7 +105,10 @@ export default function RunResults({ runId }) {
       {/* 1. Score Gauge summary card */}
       <ScoreSummaryCard run={run} summary={summary} />
 
-      {/* 2. NEURAL SCAN TELEMETRY HUD */}
+      {/* 2. AUTOMATED DEFENSIVE REMEDIATION: AUTO-PATCH GUARDRAILS */}
+      <AutoPatchGuardrailCard run={run} summary={summary} onRunStarted={onRunStarted} />
+
+      {/* 3. NEURAL SCAN TELEMETRY HUD */}
       <NeuralScanVisualizer summary={summary} run={run} />
 
       {/* 3. Recharts Strategy Comparison & Category Breakdown */}
@@ -115,8 +120,8 @@ export default function RunResults({ runId }) {
             <Activity className="w-4 h-4 text-[#F95738]" />
             Category Pass / Fail Breakdown
           </h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 w-full" style={{ minHeight: '260px' }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={260}>
               <BarChart data={categoryChartData} margin={{ top: 10, right: 30, left: 0, bottom: 25 }}>
                 <XAxis dataKey="category" stroke="#1C1917" tick={{ fill: '#1C1917', fontSize: 11, fontFamily: 'Courier New', fontWeight: 'bold' }} interval={0} angle={-10} textAnchor="end" />
                 <YAxis stroke="#1C1917" tick={{ fill: '#1C1917', fontSize: 11, fontFamily: 'Courier New', fontWeight: 'bold' }} />
@@ -124,6 +129,7 @@ export default function RunResults({ runId }) {
                 <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'Courier New', fontWeight: 'bold' }} />
                 <Bar dataKey="passed" name="Robust (Pass)" fill="#10B981" radius={[2, 2, 0, 0]} stroke="#1C1917" strokeWidth={1.5} />
                 <Bar dataKey="failed" name="Vulnerable (Fail)" fill="#F95738" radius={[2, 2, 0, 0]} stroke="#1C1917" strokeWidth={1.5} />
+                <Bar dataKey="ambiguous" name="Ambiguous" fill="#FFD000" radius={[2, 2, 0, 0]} stroke="#1C1917" strokeWidth={1.5} />
               </BarChart>
             </ResponsiveContainer>
           </div>

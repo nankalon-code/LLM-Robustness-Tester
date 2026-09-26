@@ -28,41 +28,57 @@ app.include_router(reports.router)
 
 @app.on_event("startup")
 def seed_test_cases():
-    """Seeds the database with starter single-turn and multi-turn adversarial test cases if empty."""
+    """Seeds or updates the database with starter single-turn and multi-turn adversarial test cases."""
     db = SessionLocal()
     try:
-        count = db.query(TestCase).count()
-        if count == 0:
-            json_path = os.path.join(os.path.dirname(__file__), "data", "seed_test_cases.json")
-            if os.path.exists(json_path):
-                with open(json_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+        json_path = os.path.join(os.path.dirname(__file__), "data", "seed_test_cases.json")
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
 
-                # Seed Single-Turn test cases
-                for st in data.get("single_turn", []):
+            # Seed / Upsert Single-Turn test cases
+            for st in data.get("single_turn", []):
+                existing = db.query(TestCase).filter(TestCase.id == st["id"]).first()
+                if existing:
+                    existing.category = st["category"]
+                    existing.severity_hint = st["severity_hint"]
+                    existing.is_multi_turn = 0
+                    existing.prompt_or_turns = st["prompt"]
+                    existing.description = st.get("description", "Single turn prompt test case")
+                else:
                     tc = TestCase(
                         id=st["id"],
                         category=st["category"],
                         severity_hint=st["severity_hint"],
                         is_multi_turn=0,
                         prompt_or_turns=st["prompt"],
-                        description=st.get("description", "Single turn prompt test case")
+                        description=st.get("description", "Single turn prompt test case"),
+                        strategy="seed_benchmark"
                     )
                     db.add(tc)
 
-                # Seed Multi-Turn test cases
-                for mt in data.get("multi_turn", []):
+            # Seed / Upsert Multi-Turn test cases
+            for mt in data.get("multi_turn", []):
+                existing = db.query(TestCase).filter(TestCase.id == mt["id"]).first()
+                if existing:
+                    existing.category = mt["category"]
+                    existing.severity_hint = mt.get("severity_hint", "critical")
+                    existing.is_multi_turn = 1
+                    existing.prompt_or_turns = mt["turns"]
+                    existing.description = mt.get("description", "Multi-turn scripted escalation")
+                else:
                     tc = TestCase(
                         id=mt["id"],
                         category=mt["category"],
-                        severity_hint="critical", # Default escalation severity hint
+                        severity_hint=mt.get("severity_hint", "critical"),
                         is_multi_turn=1,
                         prompt_or_turns=mt["turns"],
-                        description=mt.get("description", "Multi-turn scripted escalation")
+                        description=mt.get("description", "Multi-turn scripted escalation"),
+                        strategy="seed_benchmark"
                     )
                     db.add(tc)
 
-                db.commit()
+            db.commit()
     finally:
         db.close()
 

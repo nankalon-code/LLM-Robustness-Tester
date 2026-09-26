@@ -39,6 +39,9 @@ class LLMClient:
         if target_provider == "groq" and self.groq_api_key:
             return await self._call_groq(messages, model_name, system_prompt, temperature)
         else:
+            # Fall back to installed local model if a cloud/uninstalled model name was passed
+            if model_name in ["llama-3.1-8b-instant", "llama3.1:8b", "llama3:8b", "qwen-2.5-32b", "llama-3.3-70b-versatile"]:
+                model_name = "qwen2.5:3b"
             # Both 'ollama' and 'qwen' run locally via Ollama host endpoint
             return await self._call_ollama(messages, model_name, system_prompt, temperature)
 
@@ -93,10 +96,12 @@ class LLMClient:
         
         # Default Groq model mapping if short name passed
         groq_model = model
-        if groq_model in ["llama3-8b", "llama3.1-8b"]:
-            groq_model = "llama3-8b-8192"
-        elif groq_model in ["llama3-70b", "llama3.1-70b"]:
-            groq_model = "llama-3.1-70b-versatile"
+        if groq_model in ["llama3-8b", "llama3.1-8b", "llama-3.1-8b"]:
+            groq_model = "llama-3.1-8b-instant"
+        elif groq_model in ["llama3-70b", "llama3.1-70b", "llama3.3-70b", "llama-3.3-70b"]:
+            groq_model = "llama-3.3-70b-versatile"
+        elif groq_model in ["qwen", "qwen2.5", "qwen-2.5", "qwen2.5-32b", "qwen-2.5-32b"]:
+            groq_model = "qwen-2.5-32b"
 
         payload = {
             "model": groq_model,

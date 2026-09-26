@@ -11,7 +11,8 @@ class MultiTurnRunner:
         self,
         category: str,
         turns: List[str],
-        target_info: Dict[str, Any]
+        target_info: Dict[str, Any],
+        evaluator_model: str = None
     ) -> Tuple[str, Dict[str, Any], int]:
         """
         Runs scripted multi-turn escalation sequences.
@@ -44,7 +45,8 @@ class MultiTurnRunner:
             turn_eval = await self.judge.evaluate(
                 category=category,
                 prompt=turn_text,
-                response_text=target_response
+                response_text=target_response,
+                model=evaluator_model
             )
 
             # Check if target broke on this turn

@@ -46,6 +46,7 @@ async def execute_test_run(db: Session, run_id: int):
 
     target_info = test_run.target_info or {}
     selected_strategy = test_run.selected_strategy or "all_perez_strategies"
+    evaluator_model = test_run.evaluator_judge_model or "qwen:qwen2.5:3b"
     system_prompt = target_info.get("content") if target_info.get("target_type") == "system_prompt" else None
 
     # Determine strategies to execute
@@ -105,7 +106,8 @@ async def execute_test_run(db: Session, run_id: int):
             resp_text, eval_res, broke_turn = await multi_turn_runner.run_multi_turn_script(
                 category=tc["category"],
                 turns=turns,
-                target_info=target_info
+                target_info=target_info,
+                evaluator_model=evaluator_model
             )
             
             # Check if output has raw attack payloads
@@ -134,7 +136,8 @@ async def execute_test_run(db: Session, run_id: int):
             eval_res = await judge.evaluate(
                 category=tc["category"],
                 prompt=prompt_text,
-                response_text=resp_text
+                response_text=resp_text,
+                model=evaluator_model
             )
 
             is_offense = 1 if eval_res.get("label") == "vulnerable" or any(word in prompt_text.lower() for word in ["bypass", "leaked", "obfuscate", "hack"]) else 0

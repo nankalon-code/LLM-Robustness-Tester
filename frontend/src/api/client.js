@@ -59,3 +59,15 @@ export async function fetchRegressionDiff(runAId, runBId) {
   if (!res.ok) throw new Error('Failed to fetch regression diff');
   return res.json();
 }
+
+export async function autoPatchGuardrails(runId) {
+  const res = await fetch(`${API_BASE}/reports/auto-patch/${runId}`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to auto-patch guardrails');
+  }
+  return res.json();
+}
+

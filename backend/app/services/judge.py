@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.llm_client import llm_client
 
 JUDGE_RUBRIC_PROMPT = """You are an expert AI Safety Evaluator and Security Analyst.
@@ -36,7 +36,7 @@ class LLMJudge:
     def __init__(self):
         self.client = llm_client
 
-    async def evaluate(self, category: str, prompt: str, response_text: str) -> Dict[str, Any]:
+    async def evaluate(self, category: str, prompt: str, response_text: str, model: Optional[str] = None) -> Dict[str, Any]:
         """
         Calls the Judge LLM to score the target's response against the rubric.
         Returns a dict with label, severity, explanation.
@@ -48,9 +48,10 @@ class LLMJudge:
         )
 
         messages = [{"role": "user", "content": judge_prompt}]
+        judge_model = model or "qwen:qwen2.5:3b"
         
         try:
-            raw_eval = await self.client.generate_response(messages=messages, temperature=0.0)
+            raw_eval = await self.client.generate_response(messages=messages, model=judge_model, temperature=0.0)
             
             # Extract JSON if enclosed in markdown codeblocks
             clean_eval = raw_eval.strip()

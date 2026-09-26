@@ -14,11 +14,12 @@ export default function StrategyComparisonChart({ summary }) {
   };
 
   const chartData = Object.keys(strategyLabels).map((key) => {
-    const data = breakdown[key] || { total: 0, passed: 0, failed: 0, pass_rate: 100.0 };
+    const data = breakdown[key] || { total: 0, passed: 0, failed: 0, ambiguous: 0, pass_rate: 100.0 };
     return {
       strategy: strategyLabels[key],
-      passed: data.passed,
-      failed: data.failed,
+      passed: data.passed || 0,
+      failed: data.failed || 0,
+      ambiguous: data.ambiguous || 0,
       pass_rate: data.pass_rate
     };
   });
@@ -37,8 +38,8 @@ export default function StrategyComparisonChart({ summary }) {
         </span>
       </div>
 
-      <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-64 w-full" style={{ minHeight: '260px' }}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={260}>
           <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 25 }}>
             <XAxis
               dataKey="strategy"
@@ -55,6 +56,7 @@ export default function StrategyComparisonChart({ summary }) {
             <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'Courier New', fontWeight: 'bold' }} />
             <Bar dataKey="passed" name="Robust (Pass)" fill="#10B981" radius={[2, 2, 0, 0]} stroke="#1C1917" strokeWidth={1.5} />
             <Bar dataKey="failed" name="Vulnerable (Fail)" fill="#F95738" radius={[2, 2, 0, 0]} stroke="#1C1917" strokeWidth={1.5} />
+            <Bar dataKey="ambiguous" name="Ambiguous" fill="#FFD000" radius={[2, 2, 0, 0]} stroke="#1C1917" strokeWidth={1.5} />
           </BarChart>
         </ResponsiveContainer>
       </div>

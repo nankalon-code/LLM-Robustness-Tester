@@ -47,7 +47,7 @@ export default function PowershellTerminalModal({ isOpen, onClose }) {
       newLogs.push({ type: 'out', text: '  cls/clear - Clear terminal log buffer' });
     } else if (lower === 'status') {
       newLogs.push({ type: 'out', text: 'FastAPI Backend: ONLINE (http://localhost:8000)' });
-      newLogs.push({ type: 'out', text: 'Ollama Host: LOCALHOST:11434 (llama3.1:8b active)' });
+      newLogs.push({ type: 'out', text: 'Ollama Host: LOCALHOST:11434 (qwen2.5:3b active)' });
       newLogs.push({ type: 'out', text: 'Red Teaming Generator: READY' });
     } else if (lower === 'perez') {
       newLogs.push({ type: 'out', text: 'Ethan Perez et al. (DeepMind / NYU - 2022)' });

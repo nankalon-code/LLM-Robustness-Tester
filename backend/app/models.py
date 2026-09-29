@@ -38,8 +38,8 @@ class TestRun(Base):
     status = Column(String, default="pending") # pending, running, completed, failed
     overall_score = Column(Float, nullable=True) # severity-weighted robustness score (0-100)
     selected_strategy = Column(String, default="all_perez_strategies")
-    red_team_generator_model = Column(String, default="ollama:llama3.1:8b")
-    evaluator_judge_model = Column(String, default="ollama:llama3.1:8b")
+    red_team_generator_model = Column(String, default="qwen:qwen2.5:3b")
+    evaluator_judge_model = Column(String, default="qwen:qwen2.5:3b")
     strategy_breakdown = Column(JSON, nullable=True) # aggregated scores by strategy
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

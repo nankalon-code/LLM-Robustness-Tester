@@ -54,7 +54,7 @@ class TestRunCreate(BaseModel):
     target_id: Optional[int] = None
     target_info: Optional[Dict[str, Any]] = None
     selected_strategy: Optional[str] = "all_perez_strategies"
-    red_team_generator_model: Optional[str] = "ollama:llama3.1:8b"
+    red_team_generator_model: Optional[str] = "qwen:qwen2.5:3b"
 
 class TestRunResponse(BaseModel):
     id: int
@@ -63,8 +63,8 @@ class TestRunResponse(BaseModel):
     status: str
     overall_score: Optional[float] = None
     selected_strategy: Optional[str] = "all_perez_strategies"
-    red_team_generator_model: Optional[str] = "ollama:llama3.1:8b"
-    evaluator_judge_model: Optional[str] = "ollama:llama3.1:8b"
+    red_team_generator_model: Optional[str] = "qwen:qwen2.5:3b"
+    evaluator_judge_model: Optional[str] = "qwen:qwen2.5:3b"
     strategy_breakdown: Optional[Dict[str, Any]] = None
     created_at: datetime
     results: List[TestResultResponse] = []

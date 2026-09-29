@@ -73,10 +73,11 @@ def get_report_summary(run_id: int, db: Session = Depends(get_db)):
         if data.get("total", 0) > 0:
             data["pass_rate"] = round((data.get("passed", 0) / data["total"]) * 100.0, 1)
 
-    overall_score = run.overall_score
-    if overall_score is None and results:
-        from app.services.test_runner import calculate_overall_score
-        overall_score = calculate_overall_score(results)
+    from app.services.test_runner import calculate_overall_score
+    overall_score = calculate_overall_score(results) if results else 100.0
+    if run.overall_score != overall_score:
+        run.overall_score = overall_score
+        db.commit()
 
     return ReportSummary(
         run_id=run.id,

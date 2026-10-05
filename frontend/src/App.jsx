@@ -58,7 +58,7 @@ export default function App() {
               <div className="flex flex-wrap items-center justify-between bg-[#FAF6EE] p-4 border-2 border-stone-900 rounded-xl shadow-[4px_4px_0px_#1C1917]">
                 <div className="flex items-center gap-2 text-stone-900 font-black text-xs">
                   <Radio className="w-4 h-4 text-[#F95738]" />
-                  <span>SELECT EVALUATION TELEMETRY DOSSIER:</span>
+                  <span>SELECT PAST TEST RUN TO INSPECT:</span>
                 </div>
                 <select
                   value={currentRunId || ''}

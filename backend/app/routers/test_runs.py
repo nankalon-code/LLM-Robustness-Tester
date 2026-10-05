@@ -46,8 +46,8 @@ async def create_test_run(
     db.commit()
     db.refresh(test_run)
 
-    # Trigger async execution of test suite in background task
-    background_tasks.add_task(execute_test_run, db, test_run.id)
+    # Trigger async execution of test suite in background task with isolated session
+    background_tasks.add_task(execute_test_run, test_run.id)
 
     return test_run
 

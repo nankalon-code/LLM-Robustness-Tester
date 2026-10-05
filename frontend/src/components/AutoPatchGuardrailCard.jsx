@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { autoPatchGuardrails, createTestRun } from '../api/client';
-import { ShieldCheck, ShieldAlert, Sparkles, RefreshCw, ArrowRight, CheckCircle2, Copy, Check, FileText } from 'lucide-react';
+import { autoPatchGuardrails, createTestRun, verifyPatch } from '../api/client';
+import { ShieldCheck, ShieldAlert, Sparkles, RefreshCw, ArrowRight, CheckCircle2, Copy, Check, FileText, Zap } from 'lucide-react';
 
 export default function AutoPatchGuardrailCard({ run, summary, onRunStarted }) {
   const [loading, setLoading] = useState(false);
@@ -26,6 +26,22 @@ export default function AutoPatchGuardrailCard({ run, summary, onRunStarted }) {
     }
   };
 
+  const handleVerifyPatch = async () => {
+    if (!run?.id) return;
+    setRetesting(true);
+    setError(null);
+    try {
+      const data = await verifyPatch(run.id);
+      if (onRunStarted && data.verification_run_id) {
+        onRunStarted(data.verification_run_id);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to trigger verification benchmark');
+    } finally {
+      setRetesting(false);
+    }
+  };
+
   const handleCopyPrompt = () => {
     if (remediation?.hardened_prompt) {
       navigator.clipboard.writeText(remediation.hardened_prompt);
@@ -42,7 +58,7 @@ export default function AutoPatchGuardrailCard({ run, summary, onRunStarted }) {
       const newRun = await createTestRun({
         target_id: remediation.hardened_target_id,
         selected_strategy: run.selected_strategy || 'all_perez_strategies',
-        red_team_generator_model: run.red_team_generator_model || 'groq:llama-3.1-8b-instant',
+        red_team_generator_model: run.red_team_generator_model || 'qwen:qwen2.5:3b',
         target_info: {
           id: remediation.hardened_target_id,
           name: remediation.hardened_name,
@@ -143,13 +159,26 @@ export default function AutoPatchGuardrailCard({ run, summary, onRunStarted }) {
                 {remediation.patch_summary}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleCopyPrompt}
                 className="px-3 py-1.5 bg-white border-2 border-stone-900 text-stone-900 text-xs font-bold rounded hover:bg-stone-100 flex items-center gap-1.5 shadow-[2px_2px_0px_#1C1917] cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Copied Prompt' : 'Copy Prompt v2'}
+              </button>
+              <button
+                onClick={handleVerifyPatch}
+                disabled={retesting}
+                className="px-3.5 py-1.5 bg-[#FFD000] hover:bg-[#ffe040] text-stone-900 border-2 border-stone-900 text-xs font-black uppercase rounded flex items-center gap-1.5 shadow-[2px_2px_0px_#1C1917] cursor-pointer disabled:opacity-50"
+                title="Immediately run verification benchmark to prove vulnerabilities are mitigated"
+              >
+                {retesting ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-stone-900" />
+                ) : (
+                  <Zap className="w-3.5 h-3.5 text-stone-900 fill-stone-900" />
+                )}
+                {retesting ? 'Verifying...' : '⚡ 1-Click Verify Patch'}
               </button>
               <button
                 onClick={handleRunHardenedBenchmark}
@@ -161,7 +190,7 @@ export default function AutoPatchGuardrailCard({ run, summary, onRunStarted }) {
                 ) : (
                   <ArrowRight className="w-3.5 h-3.5" />
                 )}
-                {retesting ? 'Launching...' : 'Run Benchmark on Hardened v2'}
+                {retesting ? 'Launching...' : 'Run Full Suite on v2'}
               </button>
             </div>
           </div>

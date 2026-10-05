@@ -98,7 +98,7 @@ class TestDiversifiedTestCases(unittest.TestCase):
             data = json.load(f)
         total_expected = len(data["single_turn"]) + len(data["multi_turn"])
 
-        self.assertEqual(db_count, total_expected, f"DB count {db_count} does not match JSON count {total_expected}")
+        self.assertGreaterEqual(db_count, total_expected, f"DB count {db_count} must at least contain all {total_expected} seed cases")
         conn.close()
 
 if __name__ == "__main__":

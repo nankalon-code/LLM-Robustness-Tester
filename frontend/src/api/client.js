@@ -71,3 +71,48 @@ export async function autoPatchGuardrails(runId) {
   return res.json();
 }
 
+export async function fetchConfigStatus() {
+  const res = await fetch(`${API_BASE}/config/status`);
+  if (!res.ok) throw new Error('Failed to fetch system configuration status');
+  return res.json();
+}
+
+export async function saveGroqKey(groqApiKey) {
+  const res = await fetch(`${API_BASE}/config/groq`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ groq_api_key: groqApiKey })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to save Groq API key');
+  }
+  return res.json();
+}
+
+export async function verifyPatch(runId) {
+  const res = await fetch(`${API_BASE}/reports/verify-patch/${runId}`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to trigger verification benchmark');
+  }
+  return res.json();
+}
+
+export async function exportReportMarkdown(runId) {
+  const res = await fetch(`${API_BASE}/reports/export/${runId}`);
+  if (!res.ok) throw new Error('Failed to export security report');
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `llm_security_audit_run_${runId}.md`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+

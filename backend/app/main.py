@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import engine, Base, SessionLocal
 from app.models import TestCase
-from app.routers import targets, test_runs, reports
+from app.routers import targets, test_runs, reports, config_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(targets.router)
 app.include_router(test_runs.router)
 app.include_router(reports.router)
+app.include_router(config_router.router)
 
 @app.on_event("startup")
 def seed_test_cases():

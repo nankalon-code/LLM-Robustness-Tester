@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response
 from sqlalchemy.orm import Session
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.db import get_db
-from app.models import TestRun, TestResult
+from app.models import TestRun, TestResult, Target
 from app.schemas import ReportSummary, RegressionDiff
 from app.services.guardrail_patcher import guardrail_patcher
+from app.services.test_runner import execute_test_run, calculate_overall_score
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -21,6 +22,222 @@ async def auto_patch_guardrails(run_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to auto-patch guardrails: {str(e)}")
+
+
+@router.post("/verify-patch/{run_id}")
+async def verify_patch(
+    run_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    1-Click Closed-Loop Verification:
+    Retrieves or synthesizes the hardened target for run_id, initializes a dedicated
+    verification benchmark run against the hardened prompt, and triggers background execution.
+    """
+    run = db.query(TestRun).filter(TestRun.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Original test run not found")
+
+    # 1. Synthesize or get hardened target
+    try:
+        remediation = await guardrail_patcher.auto_patch(db=db, run_id=run_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating hardened target: {str(e)}")
+
+    hardened_target_id = remediation.get("hardened_target_id")
+    hardened_target = db.query(Target).filter(Target.id == hardened_target_id).first()
+    if not hardened_target:
+        raise HTTPException(status_code=500, detail="Failed to locate synthesized hardened target")
+
+    target_info = {
+        "id": hardened_target.id,
+        "name": hardened_target.name,
+        "target_type": "system_prompt",
+        "content": hardened_target.content
+    }
+
+    # 2. Spawn a new verification TestRun linked to the hardened prompt
+    verification_run = TestRun(
+        target_id=hardened_target.id,
+        target_info=target_info,
+        selected_strategy=run.selected_strategy or "all_perez_strategies",
+        red_team_generator_model=run.red_team_generator_model,
+        evaluator_judge_model=run.evaluator_judge_model,
+        status="pending"
+    )
+    db.add(verification_run)
+    db.commit()
+    db.refresh(verification_run)
+
+    # 3. Schedule async execution with isolated DB session
+    background_tasks.add_task(execute_test_run, verification_run.id)
+
+    return {
+        "status": "success",
+        "original_run_id": run_id,
+        "verification_run_id": verification_run.id,
+        "hardened_target_id": hardened_target.id,
+        "hardened_name": hardened_target.name,
+        "message": "Closed-loop verification benchmark launched successfully!"
+    }
+
+
+@router.get("/export/{run_id}")
+def export_audit_dossier(
+    run_id: int,
+    format: str = "markdown",
+    db: Session = Depends(get_db)
+):
+    """
+    Exports a comprehensive, publication-grade Security Audit & Vulnerability Dossier.
+    Available formats: 'markdown' (.md attachment) or 'json'.
+    """
+    run = db.query(TestRun).filter(TestRun.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Test run not found")
+
+    results = db.query(TestResult).filter(TestResult.run_id == run_id).all()
+    target_info = run.target_info or {}
+    target_name = target_info.get("name", f"Target Specimen #{run.target_id or run_id}")
+    overall_score = run.overall_score if run.overall_score is not None else calculate_overall_score(results)
+
+    passed_count = sum(1 for r in results if r.label == "robust")
+    failed_count = sum(1 for r in results if r.label == "vulnerable")
+    ambiguous_count = sum(1 for r in results if r.label == "ambiguous")
+
+    if format == "json":
+        return {
+            "run_id": run.id,
+            "target_name": target_name,
+            "target_info": target_info,
+            "overall_score": overall_score,
+            "created_at": str(run.created_at),
+            "evaluator_judge_model": run.evaluator_judge_model,
+            "total_probes": len(results),
+            "passed": passed_count,
+            "failed": failed_count,
+            "ambiguous": ambiguous_count,
+            "findings": [
+                {
+                    "test_case_id": r.test_case_id,
+                    "category": r.test_case.category if r.test_case else "unknown",
+                    "strategy": r.strategy,
+                    "label": r.label,
+                    "severity": r.severity,
+                    "explanation": r.explanation,
+                    "prompt": r.test_case.prompt_or_turns if r.test_case else "",
+                    "response": r.response_text,
+                    "broke_at_turn": r.broke_at_turn
+                }
+                for r in results
+            ]
+        }
+
+    # Build High-Impact Markdown Security Report
+    lines = [
+        f"# 🛡️ LLM SECURITY AUDIT & VULNERABILITY DOSSIER",
+        f"",
+        f"**Target System:** `{target_name}`  ",
+        f"**Audit Run ID:** `#{run.id}` | **Status:** `{run.status.upper()}`  ",
+        f"**Evaluation Timestamp:** `{run.created_at}`  ",
+        f"**Evaluator Judge Model:** `{run.evaluator_judge_model or 'qwen2.5:3b'}`  ",
+        f"**Red Teaming Strategy:** `{(run.selected_strategy or 'all_perez_strategies').upper()}`  ",
+        f"",
+        f"---",
+        f"",
+        f"## 1. Executive Summary & Robustness Index",
+        f"",
+        f"- **Empirical Robustness Score:** **`{overall_score:.1f} / 100.0`**",
+        f"- **Security Posture:** `{'CRITICAL VULNERABILITIES DETECTED' if failed_count > 0 else 'VERIFIED ROBUST DEFENSE'}`",
+        f"- **Total Adversarial Probes:** `{len(results)}`",
+        f"- **Robust Defenses (Pass):** `{passed_count}` ({round((passed_count/len(results)*100), 1) if results else 100}%)",
+        f"- **Vulnerability Breaches (Fail):** `{failed_count}`",
+        f"- **Ambiguous Responses:** `{ambiguous_count}`",
+        f"",
+        f"---",
+        f"",
+        f"## 2. Threat Vector Breakdown (OWASP Top 10 for LLMs)",
+        f"",
+        f"| Threat Category | Total Probes | Robust (Pass) | Vulnerable (Fail) | Ambiguous | Status |",
+        f"| :--- | :---: | :---: | :---: | :---: | :--- |"
+    ]
+
+    # Category counts
+    cats: Dict[str, Dict[str, int]] = {}
+    for r in results:
+        c = r.test_case.category if (r.test_case and r.test_case.category) else "general_probe"
+        cats.setdefault(c, {"total": 0, "pass": 0, "fail": 0, "amb": 0})
+        cats[c]["total"] += 1
+        if r.label == "robust":
+            cats[c]["pass"] += 1
+        elif r.label == "vulnerable":
+            cats[c]["fail"] += 1
+        else:
+            cats[c]["amb"] += 1
+
+    for c, stats in sorted(cats.items()):
+        status = "✅ SECURE" if stats["fail"] == 0 else f"🚨 {stats['fail']} BREACHES"
+        lines.append(f"| `{c}` | {stats['total']} | {stats['pass']} | {stats['fail']} | {stats['amb']} | {status} |")
+
+    lines.extend([
+        f"",
+        f"---",
+        f"",
+        f"## 3. Vulnerability Findings & Exploitation Telemetry",
+        f""
+    ])
+
+    vulnerable_findings = [r for r in results if r.label == "vulnerable"]
+    if not vulnerable_findings:
+        lines.append("*No vulnerability breaches detected. Target safely rejected or mitigated all evaluated attack vectors.*")
+    else:
+        for idx, r in enumerate(vulnerable_findings, 1):
+            cat = r.test_case.category if r.test_case else "general"
+            sev = (r.severity or "medium").upper()
+            prompt = r.test_case.prompt_or_turns if r.test_case else "N/A"
+            resp = r.response_text or "No response captured"
+            turn_note = f" (Collapsing at Turn {r.broke_at_turn})" if r.broke_at_turn else ""
+
+            lines.extend([
+                f"### Finding #{idx}: [{sev}] `{cat}`{turn_note}",
+                f"- **Strategy:** `{r.strategy or 'seed_benchmark'}`",
+                f"- **Judge Explanation:** {r.explanation or 'Safety violation identified by LLM Judge.'}",
+                f"",
+                f"**Adversarial Probe Input:**",
+                f"```text",
+                f"{prompt}",
+                f"```",
+                f"",
+                f"**Target System Response:**",
+                f"```text",
+                f"{resp[:600]}{'...' if len(resp) > 600 else ''}",
+                f"```",
+                f""
+            ])
+
+    lines.extend([
+        f"---",
+        f"",
+        f"## 4. Methodology & Theoretical Foundation",
+        f"This evaluation was executed pursuant to DeepMind & NYU research:",
+        f"> *Perez et al. (2022) — Red Teaming Language Models with Language Models.*",
+        f"",
+        f"Scoring is empirical, severity-calibrated (Critical=10.0, High=5.0, Medium=2.5, Low=1.0), and enforces deterministic fast-path refusal heuristics with zero-temperature JSON judge rubrics.",
+        f"",
+        f"*Report generated automatically by LLM Robustness Tester.*"
+    ])
+
+    markdown_content = "\n".join(lines)
+    filename = f"llm_security_audit_run_{run_id}.md"
+
+    return Response(
+        content=markdown_content,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
 
 
 @router.get("/summary/{run_id}", response_model=ReportSummary)
